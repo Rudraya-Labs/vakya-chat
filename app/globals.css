@@ -3,6 +3,7 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
+  --vakya-purple: #9333ea;
 }
 
 body {
@@ -15,4 +16,4 @@ body {
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-::-webkit-szcrollbar-track { background: transparent; }
+::-webkit-scrollbar-track { background: transparent; }

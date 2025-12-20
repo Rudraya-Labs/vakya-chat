@@ -4,18 +4,24 @@ import { Message } from '@/types';
 
 export const useChat = (chatId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId) {
+      setLoading(false);
+      return;
+    }
 
     // 1. Fetch initial history
     const fetchMessages = async () => {
+      setLoading(true);
       const { data } = await supabase
         .from('messages')
         .select('*')
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true });
       if (data) setMessages(data);
+      setLoading(false);
     };
     fetchMessages();
 
@@ -39,5 +45,5 @@ export const useChat = (chatId: string) => {
     return () => { supabase.removeChannel(channel); };
   }, [chatId]);
 
-  return { messages };
+  return { messages, loading };
 };
