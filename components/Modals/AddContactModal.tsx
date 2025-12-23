@@ -10,14 +10,18 @@ interface Props {
 }
 
 export default function AddContactModal({ isOpen, onClose }: Props) {
-  const [username, setUsername] = useState("");
+  const [usernames, setUsernames] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successCount, setSuccessCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccessCount(0);
+    setFailedCount(0);
 
     try {
       // 1. Get current user
@@ -26,33 +30,77 @@ export default function AddContactModal({ isOpen, onClose }: Props) {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthorized");
 
-      // 2. Find target user by username
-      const { data: target, error: searchError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", username.trim())
-        .single();
+      // 2. Process multiple usernames
+      const usernameList = usernames
+        .split(',')
+        .map(u => u.trim())
+        .filter(u => u.length > 0);
 
-      if (searchError || !target) throw new Error("Agent codename not found.");
-      if (target.id === user.id) throw new Error("You cannot add yourself.");
-
-      // 3. Add to contacts
-      const { error: insertError } = await supabase
-        .from("contacts")
-        .insert({ user_id: user.id, contact_id: target.id });
-
-      if (insertError) {
-        // Check if it's a duplicate error
-        if (insertError.code === "23505") {
-          throw new Error("Contact already exists in your secure list.");
-        }
-        throw new Error(insertError.message || "Failed to add contact.");
+      if (usernameList.length === 0) {
+        throw new Error("Please enter at least one username");
       }
 
-      // Reset form
-      setUsername("");
-      onClose();
-      // Real-time updates will handle the sidebar refresh via useContacts hook
+      // 3. Process each username
+      const results = [];
+      for (const username of usernameList) {
+        try {
+          // Skip empty usernames
+          if (!username) continue;
+
+          // Skip if trying to add self
+          if (username.toLowerCase() === user.user_metadata?.username?.toLowerCase()) {
+            results.push({ username, success: false, error: "You cannot add yourself" });
+            continue;
+          }
+
+          // Find target user by username
+          const { data: target, error: searchError } = await supabase
+            .from("profiles")
+            .select("id, username")
+            .ilike("username", username)
+            .single();
+
+          if (searchError || !target) {
+            results.push({ username, success: false, error: "User not found" });
+            continue;
+          }
+
+          // Add to contacts
+          const { error: insertError } = await supabase
+            .from("contacts")
+            .insert({ user_id: user.id, contact_id: target.id });
+
+          if (insertError) {
+            if (insertError.code === "23505") {
+              results.push({ username, success: false, error: "Already in contacts" });
+            } else {
+              throw new Error(insertError.message || "Failed to add contact");
+            }
+          } else {
+            results.push({ username, success: true });
+          }
+        } catch (err: any) {
+          results.push({ username, success: false, error: err.message });
+        }
+      }
+
+      // 4. Calculate and show results
+      const successful = results.filter(r => r.success).length;
+      const failed = results.length - successful;
+      
+      setSuccessCount(successful);
+      setFailedCount(failed);
+
+      // If all failed, show the first error
+      if (successful === 0 && failed > 0) {
+        setError(results[0].error || "Failed to add contacts");
+      }
+
+      // Clear the form if all were successful
+      if (failed === 0) {
+        setUsernames("");
+        setTimeout(() => onClose(), 1500);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -107,17 +155,26 @@ export default function AddContactModal({ isOpen, onClose }: Props) {
                 />
                 <input
                   autoFocus
-                  placeholder="Target Username..."
+                  placeholder="Enter usernames, separated by commas..."
                   className="w-full bg-black border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-purple-500 outline-none transition-all"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={usernames}
+                  onChange={(e) => setUsernames(e.target.value)}
                 />
               </div>
 
-              {error && (
-                <p className="text-red-500 text-[10px] font-bold uppercase text-center tracking-wider">
-                  {error}
-                </p>
+              {(error || successCount > 0 || failedCount > 0) && (
+                <div className="space-y-2">
+                  {successCount > 0 && (
+                    <p className="text-green-400 text-[10px] font-bold uppercase tracking-wider text-center">
+                      Successfully added {successCount} contact{successCount > 1 ? 's' : ''}
+                    </p>
+                  )}
+                  {failedCount > 0 && (
+                    <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider text-center">
+                      {error || `Failed to add ${failedCount} contact${failedCount > 1 ? 's' : ''}`}
+                    </p>
+                  )}
+                </div>
               )}
 
               <button
@@ -125,9 +182,14 @@ export default function AddContactModal({ isOpen, onClose }: Props) {
                 className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-black italic tracking-tighter text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    <span>PROCESSING {usernames.split(',').filter(u => u.trim()).length} CONTACTS</span>
+                  </>
+                ) : successCount > 0 ? (
+                  "DONE"
                 ) : (
-                  "ADD TO SECURE NETWORK"
+                  `ADD ${usernames.split(',').filter(u => u.trim()).length || ''} TO NETWORK`.trim()
                 )}
               </button>
             </form>

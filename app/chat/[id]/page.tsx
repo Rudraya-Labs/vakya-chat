@@ -74,7 +74,7 @@ export default function ChatPage() {
 
       setText('');
       setIsOneTime(false);
-    } catch (err: any) {
+    } catch (err: { params: { id: string } } | any) {
       setError(err.message || 'Failed to send message');
       console.error('Error sending message:', err);
     } finally {
@@ -153,7 +153,7 @@ export default function ChatPage() {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-black to-zinc-950"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-linear-to-b from-black to-zinc-950"
       >
         {loading && messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -202,7 +202,7 @@ export default function ChatPage() {
                     {msg.is_one_time ? (
                       <OneTimeBubble msg={msg} onReveal={() => handleReveal(msg.id)} />
                     ) : (
-                      <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                      <p className="text-sm leading-relaxed wrap-break-words">{msg.content}</p>
                     )}
                   </div>
                 </motion.div>

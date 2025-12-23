@@ -68,7 +68,7 @@ export default function VakyaDashboard() {
       <div className="max-w-2xl w-full text-center">
         {/* Welcome Icon */}
         <div className="mb-8 flex justify-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600/20 to-blue-600/20 flex items-center justify-center border border-purple-500/20">
+          <div className="w-24 h-24 rounded-full bg-linear-to-br from-purple-600/20 to-blue-600/20 flex items-center justify-center border border-purple-500/20">
             <ShieldCheck
               size={48}
               className="text-purple-500"

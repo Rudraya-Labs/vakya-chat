@@ -85,7 +85,7 @@ export default function Sidebar() {
     <aside className="w-80 h-screen bg-zinc-950 border-r border-white/10 flex flex-col shadow-2xl">
       {/* HEADER: USER IDENTITY */}
       <div className="p-6 border-b border-white/5 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
+        <div className="w-10 h-10 rounded-full bg-linear-to-tr from-purple-600 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
           {myProfile?.username?.charAt(0).toUpperCase() || '?'}
         </div>
         <div className="flex-1 min-w-0">
